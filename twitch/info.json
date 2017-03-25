@@ -1,0 +1,7 @@
+{
+    "AUTHOR" : "Cyphon",
+    "INSTALL_MSG" : "Sucessfully installed the Twitch module!",
+    "NAME" : "Twitch",
+    "SHORT" : "Tool to display and update twitch streams.",
+    "DESCRIPTION" : "Tool to display and update twitch streams."
+}
