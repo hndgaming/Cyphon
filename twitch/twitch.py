@@ -139,6 +139,7 @@ class Twitch:
                 for stream in self.twitch_streams:
                     stream["MESSAGE"] = ""
                     stream["ALREADY_ONLINE"] = False
+                    stream["CHANNEL"] = self.stream_channel
                 await self.bot.say("Reset complete.")
             else:
                 await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
