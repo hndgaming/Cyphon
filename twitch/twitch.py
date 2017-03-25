@@ -100,8 +100,6 @@ class Twitch:
                 dataIO.save_json("data/streams/twitch.json", self.twitch_streams)
             else:
                 await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
-        else:
-            await self.bot.say("Lel")
 
     @twitch.command(name="stop", pass_context=True)
     async def stop_alert(self, ctx):
@@ -129,7 +127,7 @@ class Twitch:
                 await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
 
     @twitch.command(name="reset", pass_context=True)
-    async def reset(self, ctx):
+    async def reset(self, ctx, user : str=None):
         """Resets all user settings.
         """
         cyphon = discord.utils.get(ctx.message.server.members, id="186835826699665409")
@@ -137,10 +135,108 @@ class Twitch:
         if self.check_channel(ctx):
             if self.check_permission(ctx) or ctx.message.author == cyphon:
                 for stream in self.twitch_streams:
-                    stream["MESSAGE"] = ""
-                    stream["ALREADY_ONLINE"] = False
-                    stream["CHANNEL"] = self.stream_channel
+                    if (user):
+                        if (stream["NAME"] == user):
+                            stream["MESSAGE"] = None
+                            stream["ALREADY_ONLINE"] = False
+                            stream["CHANNEL"] = self.stream_channel
+                        else:
+                            await self.bot.say("Stream does not exist")
+                    else:
+                        stream["MESSAGE"] = None
+                        stream["ALREADY_ONLINE"] = False
+                        stream["CHANNEL"] = self.stream_channel
                 await self.bot.say("Reset complete.")
+            else:
+                await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
+
+    @twitch.command(name="list", pass_context=True)
+    async def list(self, ctx):
+        """Lists all user entries.
+        """
+        cyphon = discord.utils.get(ctx.message.server.members, id="186835826699665409")
+
+        if self.check_channel(ctx):
+            if self.check_permission(ctx) or ctx.message.author == cyphon:
+                message = []
+                message.append("```\n")
+                if self.check_channel(ctx):
+                    if self.check_permission(ctx) or ctx.message.author == cyphon:
+                        for stream in self.twitch_streams:
+                            message.append(stream["NAME"] + "\n")
+                message.append("```")
+                output = ''.join(message)
+                await self.bot.say(output)
+            else:
+                await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
+
+    @twitch.command(name="info", pass_context=True)
+    async def info(self, ctx, user : str=None):
+        """Lists a user's details.
+        """
+        cyphon = discord.utils.get(ctx.message.server.members, id="186835826699665409")
+
+        message = []
+        message.append("```\n")
+
+        if self.check_channel(ctx):
+            if self.check_permission(ctx) or ctx.message.author == cyphon:
+                if user:
+                    for stream in self.twitch_streams:
+                        if stream["NAME"] == user:
+                            message.append("Stream name: " + str(stream["NAME"]) + "\n")
+
+                            if stream["IMAGE"]:
+                                message.append("Image URL: " + str(stream["IMAGE"]) + "\n")
+                            else:
+                                message.append("Image URL: N/A\n")
+
+                            if stream["LOGO"]:
+                                message.append("Logo URL: " + str(stream["LOGO"] + "\n"))
+                            else:
+                                message.append("Logo URL: N/A\n")
+
+                            if stream["CHANNEL"]:
+                                message.append("Assigned channel ID: " + str(stream["CHANNEL"]) + "\n")
+                            else:
+                                message.append("Assigned channel ID: N/A\n")
+
+                            if stream["STATUS"]:
+                                message.append("Status: " + str(stream["STATUS"]) + "\n")
+                            else:
+                                message.append("Status: N/A\n")
+
+                            if stream["ALREADY_ONLINE"]:
+                                message.append("ALREADY_ONLINE: " + str(stream["ALREADY_ONLINE"]) + "\n")
+                            else:
+                                message.append("ALREADY_ONLINE: N/A\n")
+
+                            if stream["GAME"]:
+                                message.append("Game: " + str(stream["GAME"]) + "\n")
+                            else:
+                                message.append("Game: N/A\n")
+
+                            if stream["VIEWERS"]:
+                                message.append("Viewers: " + str(stream["VIEWERS"]) + "\n")
+                            else:
+                                message.append("Viewers: N/A\n")
+
+                            if stream["LANGUAGE"]:
+                                message.append("Language: " + str(stream["LANGUAGE"]) + "\n")
+                            else:
+                                message.append("Language: N/A\n")
+
+                            if stream["MESSAGE"]:
+                                message.append("Message ID: " + str(stream["MESSAGE"]) + "\n")
+                            else:
+                                message.append("Message ID: N/A\n")
+
+                            message.append("```\n")
+                            output = ''.join(message)
+                            await self.bot.say(output)
+
+                else:
+                    await self.bot.say("Please provide a user!")
             else:
                 await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
 
@@ -219,8 +315,10 @@ class Twitch:
                     stream["STATUS"] = "N/A"
 
                 return True
-        except Exception:
-            return "error in twitch_online check"
+        except Exception as e:
+            await self.bot.send_message(
+                self.bot.get_channel(self.dev_channel),
+                "Error in twitch_online check: " + str(e))
         return "error"
 
     async def stream_checker(self):
@@ -238,37 +336,42 @@ class Twitch:
                 online = await self.twitch_online(stream)
 
                 if online is True and not stream["ALREADY_ONLINE"]:
-                    stream["ALREADY_ONLINE"] = True
-                    channel_obj = self.bot.get_channel(stream["CHANNEL"])
-                    if channel_obj is None:
-                        continue
-                    can_speak = channel_obj.permissions_for(channel_obj.server.me).send_messages
-                    if channel_obj and can_speak:
-                        data = discord.Embed(title=stream["STATUS"],
-                                             timestamp=datetime.datetime.now(),
-                                             colour=discord.Colour(value=int("05b207", 16)),
-                                             url="http://www.twitch.tv/%s" % stream["NAME"])
-                        data.add_field(name="Status", value="Online")
-                        data.add_field(name="Game", value=stream["GAME"])
-                        data.add_field(name="Viewers", value=stream["VIEWERS"])
-                        data.set_footer(text="Language: %s" % stream["LANGUAGE"])
-                        if (stream["IMAGE"]):
-                            data.set_image(url=stream["IMAGE"])
-                        if (stream["LOGO"]):
-                            data.set_thumbnail(url=stream["LOGO"])
+                    try:
+                        stream["ALREADY_ONLINE"] = True
+                        channel_obj = self.bot.get_channel(stream["CHANNEL"])
+                        if channel_obj is None:
+                            continue
+                        can_speak = channel_obj.permissions_for(channel_obj.server.me).send_messages
+                        if channel_obj and can_speak:
+                            data = discord.Embed(title=stream["STATUS"],
+                                                 timestamp=datetime.datetime.now(),
+                                                 colour=discord.Colour(value=int("05b207", 16)),
+                                                 url="http://www.twitch.tv/%s" % stream["NAME"])
+                            data.add_field(name="Status", value="Online")
+                            data.add_field(name="Game", value=stream["GAME"])
+                            data.add_field(name="Viewers", value=stream["VIEWERS"])
+                            data.set_footer(text="Language: %s" % stream["LANGUAGE"])
+                            if (stream["IMAGE"]):
+                                data.set_image(url=stream["IMAGE"])
+                            if (stream["LOGO"]):
+                                data.set_thumbnail(url=stream["LOGO"])
 
-                        if stream["CHANNEL"] and stream["MESSAGE"]:
-                            channel = self.bot.get_channel(stream["CHANNEL"])
-
-                            message = await self.bot.get_message(channel, stream["MESSAGE"])
-
-                            await self.bot.edit_message(message, embed=data)
-                        else:
+                            # if stream["CHANNEL"] and stream["MESSAGE"]:
+                            #     channel = self.bot.get_channel(stream["CHANNEL"])
+                            #
+                            #     message = await self.bot.get_message(channel, stream["MESSAGE"])
+                            #
+                            #     await self.bot.edit_message(message, embed=data)
+                            # else:
                             await self.bot.send_message(
                                 self.bot.get_channel(stream["CHANNEL"]),
                                 embed=data)
                             async for message in self.bot.logs_from(self.bot.get_channel(stream["CHANNEL"]), limit=1):
                                 stream["MESSAGE"] = message.id
+                    except Exception as e:
+                        await self.bot.send_message(
+                            self.bot.get_channel(self.dev_channel),
+                            "Error in 'if' of stream_checker: " + str(e))
 
                 elif online is True and stream["ALREADY_ONLINE"]:
                     try:
@@ -290,27 +393,33 @@ class Twitch:
 
                         await self.bot.edit_message(message, embed=data)
                     except Exception as e:
-                        print("Error in 'else if' of stream_checker: " + str(e))
+                        await self.bot.send_message(
+                            self.bot.get_channel(self.dev_channel),
+                            "Error in 'else if' of stream_checker: " + str(e))
 
                 else:
                     if stream["ALREADY_ONLINE"] and not online:
                         stream["ALREADY_ONLINE"] = False
                         try:
-                            data = discord.Embed(title=stream["STATUS"],
-                                                 timestamp=datetime.datetime.now(),
-                                                 colour=discord.Colour(value=int("990303", 16)),
-                                                 url="http://www.twitch.tv/%s" % stream["NAME"])
-                            data.add_field(name="Status", value="Offline")
-                            data.set_footer(text="Language: %s" % stream["LANGUAGE"])
-                            if (stream["LOGO"]):
-                                data.set_thumbnail(url=stream["LOGO"])
-
+                            # data = discord.Embed(title=stream["STATUS"],
+                            #                      timestamp=datetime.datetime.now(),
+                            #                      colour=discord.Colour(value=int("990303", 16)),
+                            #                      url="http://www.twitch.tv/%s" % stream["NAME"])
+                            # data.add_field(name="Status", value="Offline")
+                            # data.set_footer(text="Language: %s" % stream["LANGUAGE"])
+                            # if (stream["LOGO"]):
+                            #     data.set_thumbnail(url=stream["LOGO"])
+                            #
                             channel = self.bot.get_channel(stream["CHANNEL"])
                             message = await self.bot.get_message(channel, stream["MESSAGE"])
 
-                            await self.bot.edit_message(message, embed=data)
+                            stream["MESSAGE"] = None
+
+                            await self.bot.delete_message(message)
                         except Exception as e:
-                            print("Error in 'else' of stream_checker: " + str(e))
+                            await self.bot.send_message(
+                                self.bot.get_channel(self.dev_channel),
+                                "Error in 'else' of stream_checker: " + str(e))
 
                 await asyncio.sleep(0.5)
 
