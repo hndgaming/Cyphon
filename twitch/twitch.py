@@ -17,12 +17,14 @@ class Twitch:
         self.bot = bot
         self.twitch_streams = dataIO.load_json("data/streams/twitch.json")
         self.settings = dataIO.load_json("data/streams/settings.json")
-        # self.stream_channel = "295033190870024202"  # dev server
-        # self.dev_channel = "288790607663726602"  # dev server
-        self.stream_channel = "288915802135199754"  # live server
-        self.dev_channel = "185833952278347793"  # live server
+        self.stream_channel = "295033190870024202"  # dev server
+        self.dev_channel = "288790607663726602"  # dev server
+        # self.stream_channel = "288915802135199754"  # live server
+        # self.dev_channel = "185833952278347793"  # live server
         self.permitted_role_admin = "Admin"
-        self.check_delay = 60
+        self.check_delay = 5  # debug delay
+        # self.check_delay = 60  # live delay
+        self.online_debug = False
 
 
     @commands.group(name="twitch", pass_context=True)
@@ -44,7 +46,7 @@ class Twitch:
 
         if self.check_channel(ctx):
             if self.check_permission(ctx) or ctx.message.author == cyphon:
-                self.stream_channel = channel
+                self.stream_channel = channelq
                 await self.bot.say("Channel sucessfully assigned.")
             else:
                 await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
@@ -162,8 +164,11 @@ class Twitch:
                 message.append("```\n")
                 if self.check_channel(ctx):
                     if self.check_permission(ctx) or ctx.message.author == cyphon:
-                        for stream in self.twitch_streams:
-                            message.append(stream["NAME"] + "\n")
+                        if len(self.twitch_streams) > 0:
+                            for stream in self.twitch_streams:
+                                message.append(stream["NAME"] + "\n")
+                        else:
+                            message.append("No streams found!")
                 message.append("```")
                 output = ''.join(message)
                 await self.bot.say(output)
@@ -267,6 +272,14 @@ class Twitch:
         dataIO.save_json("data/streams/settings.json", self.settings)
         await self.bot.say('Twitch Client-ID set.')
 
+    async def twitch_online_debug(self, stream):
+        return self.online_debug
+        
+    @commands.command(name="toggle", pass_context=True)
+    async def toggle(self):
+        self.online_debug = not self.online_debug
+        await self.bot.say("Toggled online status")
+        
     async def twitch_online(self, stream):
         session = aiohttp.ClientSession()
         url = "https://api.twitch.tv/kraken/streams/" + stream["NAME"]
@@ -333,7 +346,7 @@ class Twitch:
             old = deepcopy(self.twitch_streams)
 
             for stream in self.twitch_streams:
-                online = await self.twitch_online(stream)
+                online = await self.twitch_online_debug(stream)
 
                 if online is True and not stream["ALREADY_ONLINE"]:
                     try:
@@ -347,6 +360,7 @@ class Twitch:
                                                  timestamp=datetime.datetime.now(),
                                                  colour=discord.Colour(value=int("05b207", 16)),
                                                  url="http://www.twitch.tv/%s" % stream["NAME"])
+                            data.add_field(name="Streamer", value=stream["NAME"])
                             data.add_field(name="Status", value="Online")
                             data.add_field(name="Game", value=stream["GAME"])
                             data.add_field(name="Viewers", value=stream["VIEWERS"])
