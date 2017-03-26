@@ -17,14 +17,13 @@ class Twitch:
         self.bot = bot
         self.twitch_streams = dataIO.load_json("data/streams/twitch.json")
         self.settings = dataIO.load_json("data/streams/settings.json")
-        self.stream_channel = "295033190870024202"  # dev server
-        self.dev_channel = "288790607663726602"  # dev server
-        # self.stream_channel = "288915802135199754"  # live server
-        # self.dev_channel = "185833952278347793"  # live server
+        # self.stream_channel = "295033190870024202"  # dev server
+        # self.dev_channel = "288790607663726602"  # dev server
+        self.stream_channel = "288915802135199754"  # live server
+        self.dev_channel = "185833952278347793"  # live server
         self.permitted_role_admin = "Admin"
-        self.check_delay = 5  # debug delay
-        # self.check_delay = 60  # live delay
-        self.online_debug = False
+        # self.check_delay = 5  # debug delay
+        self.check_delay = 60  # live delay
 
 
     @commands.group(name="twitch", pass_context=True)
@@ -46,7 +45,7 @@ class Twitch:
 
         if self.check_channel(ctx):
             if self.check_permission(ctx) or ctx.message.author == cyphon:
-                self.stream_channel = channelq
+                self.stream_channel = channel
                 await self.bot.say("Channel sucessfully assigned.")
             else:
                 await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
@@ -245,6 +244,63 @@ class Twitch:
             else:
                 await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
 
+    async def display_errors(self, stream):
+        message = []
+        message.append("```\n")
+
+        message.append("Stream name: " + str(stream["NAME"]) + "\n")
+
+        if stream["IMAGE"]:
+            message.append("Image URL: " + str(stream["IMAGE"]) + "\n")
+        else:
+            message.append("Image URL: N/A\n")
+
+        if stream["LOGO"]:
+            message.append("Logo URL: " + str(stream["LOGO"] + "\n"))
+        else:
+            message.append("Logo URL: N/A\n")
+
+        if stream["CHANNEL"]:
+            message.append("Assigned channel ID: " + str(stream["CHANNEL"]) + "\n")
+        else:
+            message.append("Assigned channel ID: N/A\n")
+
+        if stream["STATUS"]:
+            message.append("Status: " + str(stream["STATUS"]) + "\n")
+        else:
+            message.append("Status: N/A\n")
+
+        if stream["ALREADY_ONLINE"]:
+            message.append("ALREADY_ONLINE: " + str(stream["ALREADY_ONLINE"]) + "\n")
+        else:
+            message.append("ALREADY_ONLINE: N/A\n")
+
+        if stream["GAME"]:
+            message.append("Game: " + str(stream["GAME"]) + "\n")
+        else:
+            message.append("Game: N/A\n")
+
+        if stream["VIEWERS"]:
+            message.append("Viewers: " + str(stream["VIEWERS"]) + "\n")
+        else:
+            message.append("Viewers: N/A\n")
+
+        if stream["LANGUAGE"]:
+            message.append("Language: " + str(stream["LANGUAGE"]) + "\n")
+        else:
+            message.append("Language: N/A\n")
+
+        if stream["MESSAGE"]:
+            message.append("Message ID: " + str(stream["MESSAGE"]) + "\n")
+        else:
+            message.append("Message ID: N/A\n")
+
+        message.append("```\n")
+        output = ''.join(message)
+        await self.bot.send_message(
+            self.bot.get_channel(self.dev_channel),
+            output)
+
     def check_channel(self, ctx):
         if ctx.message.channel.id == self.dev_channel:
             return True
@@ -271,14 +327,6 @@ class Twitch:
         self.settings["TWITCH_TOKEN"] = "6mmlypg9emj6jebbpylmlpejwxj2pn"
         dataIO.save_json("data/streams/settings.json", self.settings)
         await self.bot.say('Twitch Client-ID set.')
-
-    async def twitch_online_debug(self, stream):
-        return self.online_debug
-        
-    @commands.command(name="toggle", pass_context=True)
-    async def toggle(self):
-        self.online_debug = not self.online_debug
-        await self.bot.say("Toggled online status")
         
     async def twitch_online(self, stream):
         session = aiohttp.ClientSession()
@@ -332,6 +380,7 @@ class Twitch:
             await self.bot.send_message(
                 self.bot.get_channel(self.dev_channel),
                 "Error in twitch_online check: " + str(e))
+            await self.display_errors(stream)
         return "error"
 
     async def stream_checker(self):
@@ -340,13 +389,13 @@ class Twitch:
 
         while self == self.bot.get_cog("Twitch"):
 
-            # print("ALIVE %s!" % counter)
-            # counter += 1
+            print("ALIVE %s!" % counter)
+            counter += 1
 
             old = deepcopy(self.twitch_streams)
 
             for stream in self.twitch_streams:
-                online = await self.twitch_online_debug(stream)
+                online = await self.twitch_online(stream)
 
                 if online is True and not stream["ALREADY_ONLINE"]:
                     try:
@@ -386,6 +435,7 @@ class Twitch:
                         await self.bot.send_message(
                             self.bot.get_channel(self.dev_channel),
                             "Error in 'if' of stream_checker: " + str(e))
+                        await self.display_errors(stream)
 
                 elif online is True and stream["ALREADY_ONLINE"]:
                     try:
@@ -393,6 +443,7 @@ class Twitch:
                                              timestamp=datetime.datetime.now(),
                                              colour=discord.Colour(value=int("05b207",16)),
                                              url="http://www.twitch.tv/%s" % stream["NAME"])
+                        data.add_field(name="Streamer", value=stream["NAME"])
                         data.add_field(name="Status", value="Online")
                         data.add_field(name="Game", value=stream["GAME"])
                         data.add_field(name="Viewers", value=stream["VIEWERS"])
@@ -410,6 +461,7 @@ class Twitch:
                         await self.bot.send_message(
                             self.bot.get_channel(self.dev_channel),
                             "Error in 'else if' of stream_checker: " + str(e))
+                        await self.display_errors(stream)
 
                 else:
                     if stream["ALREADY_ONLINE"] and not online:
@@ -434,6 +486,7 @@ class Twitch:
                             await self.bot.send_message(
                                 self.bot.get_channel(self.dev_channel),
                                 "Error in 'else' of stream_checker: " + str(e))
+                            await self.display_errors(stream)
 
                 await asyncio.sleep(0.5)
 
