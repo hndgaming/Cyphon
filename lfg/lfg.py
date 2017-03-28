@@ -10,11 +10,11 @@ class LFG:
         self.cooldown = 45
         self.cooldown_json = dataIO.load_json("data/lfg/cooldown.json")
         self.broadcasting = True
-        self.permitted_channel = "overwatch-lf"
-        # self.permitted_channel = "secondchannel"
-        self.permitted_role_admin = "Admin"
-        # self.permitted_role_admin = "LFGPermission"
-        self.permitted_role_staff = "Staff"
+        self.permitted_channel = "288795776459603968"  # live server
+        # self.permitted_channel = "288681028284055552"  # dev server
+        self.permitted_role_admin = "Admin"  # live server
+        # self.permitted_role_admin = "LFGPermission"  # dev server
+        self.permitted_role_staff = "Staff"  # live server
 
     # async def poll(self, user):
     #     session = aiohttp.ClientSession()
@@ -46,7 +46,10 @@ class LFG:
                 "∙ `.lfg unsub <mode> <region>` unsubscribes you from the specified LFG-role. *E.g:* `.lfg unsub qp na`\n" \
                 "∙ `.lfg search <mode> <region> <text>` can be used to search for other players with the specified LFG-role. Don't forget to add your text here! *E.g:* `.lfg search cp eu Anyone in the 2500 - 3000 range want to group up?`\n\n" \
                 "Options for `<mode>` are `cp` or `qp`. Options for `<region>` are `eu` or `na`."
-            await self.bot.send_message(ctx.message.author, msg)
+            try:
+                await self.bot.send_message(ctx.message.author, msg)
+            except discord.errors.Forbidden:
+                await self.bot.say("We couldn't send you the instructions, %s! Check if you allowed DMs and then try again!" % ctx.message.author.mention)
 
     @lfg.command(name="sub", pass_context=True)
     async def subscribe(self, ctx, mode: str = None, region: str = None):
@@ -84,15 +87,24 @@ class LFG:
 
                 try:
                     if role in user_roles:
-                        await self.bot.send_message(ctx.message.author, "You already have the role %s" % role)
+                        try:
+                            await self.bot.send_message(ctx.message.author, "You already have the role %s." % role)
+                        except discord.errors.Forbidden:
+                            await self.bot.say("%s, you already have the role %s." % (ctx.message.author.mention, role))
                     else:
                         await self.bot.add_roles(ctx.message.author, role)
                         if self.broadcasting:
                             await self.bot.say("%s just subscribed to %s!" % (ctx.message.author.mention, role))
                         else:
-                            await self.bot.send_message(ctx.message.author, "You successfully subscribed to %s" % role)
+                            try:
+                                await self.bot.send_message(ctx.message.author, "You successfully subscribed to %s." % role)
+                            except discord.errors.Forbidden:
+                                await self.bot.say("%s just subscribed to %s!" % (ctx.message.author.mention, role))
                 except UnboundLocalError:
-                    await self.bot.send_message(ctx.message.author, "Please specify a correct mode and region!\nYour input was: ``%s.``\nUse ``.lfg help``for more information!" % ctx.message.content)
+                    try:
+                        await self.bot.send_message(ctx.message.author, "Please specify a correct mode and region!\nYour input was: ``%s``.\nUse ``.lfg help``for more information!" % ctx.message.content)
+                    except discord.errors.Forbidden:
+                        await self.bot.say("%s, please specify a correct mode and region!\nYour input was: ``%s``.\n Use ``.lfg help`` for more information!" % (ctx.message.author.mention, ctx.message.content))
         except Exception as e:
             await self.bot.send_message(cyphon, "User: %s\nReported error: %s\nMessage: %s" % (ctx.message.author, e, ctx.message.content))
             await self.bot.say("Your request caused an error! A report has been forwarded to the developer.")
@@ -133,9 +145,15 @@ class LFG:
                 try:
                     if role in user_roles:
                         await self.bot.remove_roles(ctx.message.author, role)
-                        await self.bot.send_message(ctx.message.author, "You successfully unsubscribed from %s." % role)
+                        try:
+                            await self.bot.send_message(ctx.message.author, "You successfully unsubscribed from %s." % role)
+                        except discord.errors.Forbidden:
+                            await self.bot.say("%s successfully unsubscribed from &s." % (ctx.message.author.mention, role))
                     else:
-                        await self.bot.send_message(ctx.message.author, "You don't have the role %s!" % role)
+                        try:
+                            await self.bot.send_message(ctx.message.author, "You don't have the role %s!" % role)
+                        except discord.errors.Forbidden:
+                            await self.bot.say("%s, you don't have the role %s!" % (ctx.message.author.mention, role))
                 except UnboundLocalError:
                     # if removeAll:
                     #     roles = [CasualNA, competitiveNA, CasualEU, competitiveEU]
@@ -147,7 +165,12 @@ class LFG:
                     #
                     #     await self.bot.say("All LFG roles have been removed from %s!" % (ctx.message.author.mention))
                     # else:
-                    await self.bot.send_message(ctx.message.author, "Please specify a correct mode and region!\nYour input was: ``%s.``\nUse ``.lfg help``for more information!" % ctx.message.content)
+                    try:
+                        await self.bot.send_message(ctx.message.author, "Please specify a correct mode and region!\nYour input was: ``%s``.\nUse ``.lfg help``for more information!" % ctx.message.content)
+                    except discord.errors.Forbidden:
+                        await self.bot.say(
+                            "%s, please specify a correct mode and region!\nYour input was: ``%s``.\n Use ``.lfg help`` for more information!" % (
+                            ctx.message.author.mention, ctx.message.content))
         except Exception as e:
             await self.bot.send_message(cyphon, "User: %s\nReported error: %s\nMessage: %s" % (ctx.message.author, e, ctx.message.content))
             await self.bot.say("Your request caused an error! A report has been forwarded to the developer.")
@@ -206,11 +229,19 @@ class LFG:
                             await self.bot.say("User %s is %s:\n%s" % (ctx.message.author.mention, competitiveEU.mention, message))
                             await self.bot.edit_role(ctx.message.server, competitiveEU, mentionable=False)
                     except UnboundLocalError:
-                        await self.bot.send_message(ctx.message.author, "Please specify a correct mode and region!\nYour input was: ``%s.``\nUse ``.lfg help``for more information!" % ctx.message.content)
+                        try:
+                            await self.bot.send_message(ctx.message.author, "Please specify a correct mode and region!\nYour input was: ``%s.``\nUse ``.lfg help``for more information!" % ctx.message.content)
+                        except discord.errors.Forbidden:
+                            await self.bot.say(
+                                "%s, please specify a correct mode and region!\nYour input was: ``%s``.\n Use ``.lfg help`` for more information!" % (
+                                ctx.message.author.mention, ctx.message.content))
                         del (self.cooldown_json[ctx.message.author.id])
                         dataIO.save_json('data/lfg/cooldown.json', self.cooldown_json)
                 else:
-                    await self.bot.send_message(ctx.message.author, cooldown)
+                    try:
+                        await self.bot.send_message(ctx.message.author, cooldown)
+                    except discord.errors.Forbidden:
+                        await self.bot.say(cooldown)
         except Exception as e:
             await self.bot.send_message(cyphon, "User: %s\nReported error: %s\nMessage: %s" % (ctx.message.author, e, ctx.message.content))
             await self.bot.say("Your request caused an error! A report has been forwarded to the developer.")
@@ -227,9 +258,9 @@ class LFG:
                     dataIO.save_json('data/lfg/cooldown.json', self.cooldown_json)
                     await self.bot.say("Cooldown reset for %s" % ctx.message.mentions[0].mention)
                 except KeyError:
-                    await self.bot.send_message(ctx.message.author, "User %s does not have a cooldown" % ctx.message.mentions[0])
+                    await self.bot.say("User %s does not have a cooldown" % ctx.message.mentions[0])
             else:
-                await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
+                await self.bot.say("You don't have permission to execute that command.")
 
     @lfg.command(name="broadcast", pass_context=True)
     async def broadcast(self, ctx):
@@ -246,7 +277,7 @@ class LFG:
                 else:
                     await self.bot.say("Broadcasting subscribers is now turned off!")
             else:
-                await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
+                await self.bot.say("You don't have permission to execute that command.")
 
     @lfg.command(name="cleanup", pass_context=True)
     async def cleanup(self, ctx, arg: str = None):
@@ -264,7 +295,7 @@ class LFG:
                     arg.lower()
 
                 channels = [channel for channel in ctx.message.server.channels]
-                channel = discord.utils.get(channels, name=self.permitted_channel)
+                channel = self.bot.get_channel(self.permitted_channel)
 
                 async for message in self.bot.logs_from(channel):
                     if arg is None:
@@ -291,7 +322,7 @@ class LFG:
                             "To unsubscribe from a role, you can use:\n" \
                             "``.lfg unsub <mode> <region>`` or ``.lft unsub <region>`` respectively.")
             else:
-                await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
+                await self.bot.say("You don't have permission to execute that command.")
 
     async def mass_purge(self, messages):
         while messages:
@@ -305,7 +336,7 @@ class LFG:
 
     def check_channel(self, ctx, choice: str = None):
         channels = [channel for channel in ctx.message.server.channels]
-        channel = discord.utils.get(channels, name=self.permitted_channel)
+        channel = self.bot.get_channel(self.permitted_channel)
 
         if choice is None:
             if ctx.message.channel == channel:
