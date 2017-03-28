@@ -11,19 +11,24 @@ import aiohttp
 import logging
 import discord
 import datetime
+import traceback
 
 class Twitch:
     def __init__(self, bot):
         self.bot = bot
         self.twitch_streams = dataIO.load_json("data/streams/twitch.json")
         self.settings = dataIO.load_json("data/streams/settings.json")
-        # self.stream_channel = "295033190870024202"  # dev server
-        # self.dev_channel = "288790607663726602"  # dev server
+        self.permitted_role_admin = "Admin"
+
         self.stream_channel = "288915802135199754"  # live server
         self.dev_channel = "185833952278347793"  # live server
-        self.permitted_role_admin = "Admin"
-        # self.check_delay = 5  # debug delay
+        self.server_id = "184694956131221515"  # live server
         self.check_delay = 60  # live delay
+
+        # self.stream_channel = "295033190870024202"  # dev server
+        # self.dev_channel = "288790607663726602"  # dev server
+        # self.server_id = "215477025735966722"  # dev server
+        # self.check_delay = 5  # debug delay
 
 
     @commands.group(name="twitch", pass_context=True)
@@ -297,8 +302,10 @@ class Twitch:
 
         message.append("```\n")
         output = ''.join(message)
+
+        cyphon = discord.utils.get(self.bot.get_server(self.server_id).members, id="186835826699665409")
         await self.bot.send_message(
-            self.bot.get_channel(self.dev_channel),
+            cyphon,
             output)
 
     def check_channel(self, ctx):
@@ -342,6 +349,7 @@ class Twitch:
                 return 404
 
             elif data["stream"] is None:
+                stream["GAME"] = data["stream"]["game"]
                 return False
 
             elif data["stream"]:
@@ -376,10 +384,12 @@ class Twitch:
                     stream["STATUS"] = "N/A"
 
                 return True
-        except Exception as e:
+        except Exception:
+            cyphon = discord.utils.get(self.bot.get_server(self.server_id).members, id="186835826699665409")
+
             await self.bot.send_message(
-                self.bot.get_channel(self.dev_channel),
-                "Error in twitch_online check: " + str(e))
+                cyphon,
+                traceback.format_exc())
             await self.display_errors(stream)
         return "error"
 
@@ -431,10 +441,12 @@ class Twitch:
                                 embed=data)
                             async for message in self.bot.logs_from(self.bot.get_channel(stream["CHANNEL"]), limit=1):
                                 stream["MESSAGE"] = message.id
-                    except Exception as e:
+                    except Exception:
+                        cyphon = discord.utils.get(self.bot.get_server(self.server_id).members, id="186835826699665409")
+
                         await self.bot.send_message(
-                            self.bot.get_channel(self.dev_channel),
-                            "Error in 'if' of stream_checker: " + str(e))
+                            cyphon,
+                            traceback.format_exc())
                         await self.display_errors(stream)
 
                 elif online is True and stream["ALREADY_ONLINE"]:
@@ -457,10 +469,12 @@ class Twitch:
                         message = await self.bot.get_message(channel, stream["MESSAGE"])
 
                         await self.bot.edit_message(message, embed=data)
-                    except Exception as e:
+                    except Exception:
+                        cyphon = discord.utils.get(self.bot.get_server(self.server_id).members, id="186835826699665409")
+
                         await self.bot.send_message(
-                            self.bot.get_channel(self.dev_channel),
-                            "Error in 'else if' of stream_checker: " + str(e))
+                            cyphon,
+                            traceback.format_exc())
                         await self.display_errors(stream)
 
                 else:
@@ -482,10 +496,13 @@ class Twitch:
                             stream["MESSAGE"] = None
 
                             await self.bot.delete_message(message)
-                        except Exception as e:
+                        except Exception:
+                            cyphon = discord.utils.get(self.bot.get_server(self.server_id).members,
+                                                       id="186835826699665409")
+
                             await self.bot.send_message(
-                                self.bot.get_channel(self.dev_channel),
-                                "Error in 'else' of stream_checker: " + str(e))
+                                cyphon,
+                                traceback.format_exc())
                             await self.display_errors(stream)
 
                 await asyncio.sleep(0.5)
