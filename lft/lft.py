@@ -10,11 +10,11 @@ class LFT:
         self.cooldown = 1440
         self.cooldown_json = dataIO.load_json("data/lft/cooldown.json")
         self.broadcasting = True
-        self.permitted_channel = "overwatch-lf"
-        # self.permitted_channel = "secondchannel"
-        self.permitted_role_admin = "Admin"
-        # self.permitted_role_admin = "LFGPermission"
-        self.permitted_role_staff = "Staff"
+        self.permitted_channel = "288795776459603968"  # live server
+        # self.permitted_channel = "288681028284055552"  # dev server
+        self.permitted_role_admin = "Admin"  # live server
+        # self.permitted_role_admin = "LFGPermission"  # dev server
+        self.permitted_role_staff = "Staff"  # live server
 
     @commands.group(pass_context=True, no_pm=True)
     async def lft(self, ctx):
@@ -33,7 +33,11 @@ class LFT:
                 "∙ `.lft unsub <region>` unsubscribes you from the specified LFT-role. *E.g:* `.lft unsub na`\n" \
                 "∙ `.lft search <region> <text>` can be used to search for other players with the specified LFT-role. Don't forget to add your text here! *E.g:* `.lft search eu Looking for a Reinhardt player, SR 3000+`\n\n" \
                 "Options for `<region>` are `eu` or `na`."
-            await self.bot.send_message(ctx.message.author, msg)
+            try:
+                await self.bot.send_message(ctx.message.author, msg)
+            except discord.errors.Forbidden:
+                await self.bot.say(
+                    "We couldn't send you the instructions, %s! Check if you allowed DMs and then try again!" % ctx.message.author.mention)
 
     @lft.command(name="sub", pass_context=True)
     async def subscribe(self, ctx, region: str = None):
@@ -62,15 +66,26 @@ class LFT:
 
                 try:
                     if role in user_roles:
-                        await self.bot.send_message(ctx.message.author, "You already have the role %s!" % role)
+                        try:
+                            await self.bot.send_message(ctx.message.author, "You already have the role %s!" % role)
+                        except discord.errors.Forbidden:
+                            await self.bot.say("%s, you already have the role %s!" % (ctx.message.author.mention, role))
                     else:
                         await self.bot.add_roles(ctx.message.author, role)
                         if self.broadcast:
                             await self.bot.say("%s just subscribed to %s!" % (ctx.message.author.mention, role))
                         else:
-                            await self.bot.send_message(ctx.message.author, "You successfully subscribed to %s" % role)
+                            try:
+                                await self.bot.send_message(ctx.message.author, "You successfully subscribed to %s." % role)
+                            except discord.errors.Forbidden:
+                                await self.bot.say("%s just subscribed to %s!" % (ctx.message.author.mention, role))
                 except UnboundLocalError:
-                    await self.bot.send_message(ctx.message.author,"Please specify a correct mode and region!\nYour input was: ``%s.``\nUse ``.lft help``for more information!" % ctx.message.content)
+                    try:
+                        await self.bot.send_message(ctx.message.author,"Please specify a correct mode and region!\nYour input was: ``%s``.\nUse ``.lft help``for more information!" % ctx.message.content)
+                    except discord.errors.Forbidden:
+                        await self.bot.say(
+                            "%s, please specify a correct mode and region!\nYour input was: ``%s``.\n Use ``.lft help`` for more information!" % (
+                            ctx.message.author.mention, ctx.message.content))
         except Exception as e:
             await self.bot.send_message(cyphon, "User: %s\nReported error: %s\nMessage: %s" % (ctx.message.author, e, ctx.message.content))
             await self.bot.say("Your request caused an error! A report has been forwarded to the developer.")
@@ -105,9 +120,15 @@ class LFT:
                 try:
                     if role in user_roles:
                         await self.bot.remove_roles(ctx.message.author, role)
-                        await self.bot.send_message(ctx.message.author, "You successfully unsubscribed from %s." % role)
+                        try:
+                            await self.bot.send_message(ctx.message.author, "You successfully unsubscribed from %s." % role)
+                        except discord.errors.Forbidden:
+                            await self.bot.say("%s successfully unsubscribed from %s." % (ctx.message.author.mention, role))
                     else:
-                        await self.bot.send_message(ctx.message.author, "You don't have the role %s!" % role)
+                        try:
+                            await self.bot.send_message(ctx.message.author, "You don't have the role %s!" % role)
+                        except discord.errors.Forbidden:
+                            await self.bot.say("%s, you don't have the role %s!" % (ctx.message.author.mention, role))
                 except UnboundLocalError:
                     # if removeAll:
                     #     roles = [LFT_NA, LFT_EU]
@@ -118,7 +139,12 @@ class LFT:
                     #
                     #     await self.bot.send_message(ctx.message.author, "All LFT roles have been removed from you!")
                     # else:
-                    await self.bot.send_message(ctx.message.author,"Please specify a correct mode and region!\nYour input was: ``%s.``\nUse ``.lft help``for more information!" % ctx.message.content)
+                    try:
+                        await self.bot.send_message(ctx.message.author,"Please specify a correct mode and region!\nYour input was: ``%s``.\nUse ``.lft help``for more information!" % ctx.message.content)
+                    except discord.errors.Forbidden:
+                        await self.bot.say(
+                            "%s, please specify a correct mode and region!\nYour input was: ``%s``.\n Use ``.lft help`` for more information!" % (
+                            ctx.message.author.mention, ctx.message.content))
         except Exception as e:
             await self.bot.send_message(cyphon, "User: %s\nReported error: %s\nMessage: %s" % (ctx.message.author, e, ctx.message.content))
             await self.bot.say("Your request caused an error! A report has been forwarded to the developer.")
@@ -160,11 +186,19 @@ class LFT:
                             await self.bot.say("User %s is %s:\n%s" % (ctx.message.author.mention, LFT_EU.mention, message))
                             await self.bot.edit_role(ctx.message.server, LFT_EU, mentionable=False)
                     except UnboundLocalError:
-                        await self.bot.send_message(ctx.message.author,"Please specify a correct mode and region!\nYour input was: ``%s.``\nUse ``.lft help``for more information!" % ctx.message.content)
+                        try:
+                            await self.bot.send_message(ctx.message.author,"Please specify a correct mode and region!\nYour input was: ``%s``.\nUse ``.lft help``for more information!" % ctx.message.content)
+                        except discord.errors.Forbidden:
+                            await self.bot.say(
+                                "%s, please specify a correct mode and region!\nYour input was: ``%s``.\n Use ``.lft help`` for more information!" % (
+                                    ctx.message.author.mention, ctx.message.content))
                         del (self.cooldown_json[ctx.message.author.id])
                         dataIO.save_json('data/lft/cooldown.json', self.cooldown_json)
                 else:
-                    await self.bot.send_message(ctx.message.author, cooldown)
+                    try:
+                        await self.bot.send_message(ctx.message.author, cooldown)
+                    except discord.errors.Forbidden:
+                        await self.bot.say(cooldown)
         except Exception as e:
             await self.bot.send_message(cyphon, "User: %s\nReported error: %s\nMessage: %s" % (ctx.message.author, e, ctx.message.content))
             await self.bot.say("Your request caused an error! A report has been forwarded to the developer.")
@@ -181,9 +215,9 @@ class LFT:
                     dataIO.save_json('data/lft/cooldown.json', self.cooldown_json)
                     await self.bot.say("Cooldown reset for %s" % ctx.message.mentions[0].mention)
                 except KeyError:
-                    await self.bot.send_message(ctx.message.author, "User %s does not have a cooldown" % ctx.message.mentions[0])
+                    await self.bot.say("User %s does not have a cooldown" % ctx.message.mentions[0])
             else:
-                await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
+                await self.bot.say("You don't have permission to execute that command.")
 
     @lft.command(name="broadcast", pass_context=True)
     async def broadcast(self, ctx):
@@ -200,11 +234,11 @@ class LFT:
                 else:
                     await self.bot.say("Broadcasting subscribers is now turned off!")
             else:
-                await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
+                await self.bot.say("You don't have permission to execute that command.")
 
     def check_channel(self, ctx, choice: str = None):
         channels = [channel for channel in ctx.message.server.channels]
-        channel = discord.utils.get(channels, name=self.permitted_channel)
+        channel = self.bot.get_channel(self.permitted_channel)
 
         if choice is None:
             if ctx.message.channel == channel:

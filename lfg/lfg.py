@@ -166,7 +166,7 @@ class LFG:
                     #     await self.bot.say("All LFG roles have been removed from %s!" % (ctx.message.author.mention))
                     # else:
                     try:
-                        await self.bot.send_message(ctx.message.author, "Please specify a correct mode and region!\nYour input was: ``%s.``\nUse ``.lfg help``for more information!" % ctx.message.content)
+                        await self.bot.send_message(ctx.message.author, "Please specify a correct mode and region!\nYour input was: ``%s``.\nUse ``.lfg help``for more information!" % ctx.message.content)
                     except discord.errors.Forbidden:
                         await self.bot.say(
                             "%s, please specify a correct mode and region!\nYour input was: ``%s``.\n Use ``.lfg help`` for more information!" % (
