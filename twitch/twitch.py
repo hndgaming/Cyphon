@@ -140,19 +140,26 @@ class Twitch:
 
         if self.check_channel(ctx):
             if self.check_permission(ctx) or ctx.message.author == cyphon:
+                userFound = False
                 for stream in self.twitch_streams:
                     if (user):
                         if (stream["NAME"] == user):
                             stream["MESSAGE"] = None
                             stream["ALREADY_ONLINE"] = False
                             stream["CHANNEL"] = self.stream_channel
-                        else:
-                            await self.bot.say("Stream does not exist")
+                            userFound = True
                     else:
                         stream["MESSAGE"] = None
                         stream["ALREADY_ONLINE"] = False
                         stream["CHANNEL"] = self.stream_channel
-                await self.bot.say("Reset complete.")
+
+                if (user):
+                    if (userFound):
+                        await self.bot.say("Reset complete.")
+                    else:
+                        await self.bot.say("User does not exist!")
+                else:
+                    await self.bot.say("Reset complete.")
             else:
                 await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
 
@@ -349,7 +356,6 @@ class Twitch:
                 return 404
 
             elif data["stream"] is None:
-                stream["GAME"] = data["stream"]["game"]
                 return False
 
             elif data["stream"]:
