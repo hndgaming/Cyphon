@@ -355,9 +355,6 @@ class Twitch:
             elif r.status == 404:
                 return 404
 
-            elif data["stream"] is None:
-                return False
-
             elif data["stream"]:
                 if data["stream"]["game"]:
                     stream["GAME"] = data["stream"]["game"]
@@ -388,6 +385,9 @@ class Twitch:
                     stream["STATUS"] = data["stream"]["channel"]["status"]
                 else:
                     stream["STATUS"] = "N/A"
+
+            else:
+                return False
 
                 return True
         except Exception:
