@@ -12,6 +12,7 @@ import logging
 import discord
 import datetime
 import traceback
+import json
 
 class Twitch:
     def __init__(self, bot):
@@ -256,7 +257,7 @@ class Twitch:
             else:
                 await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
 
-    async def display_errors(self, stream):
+    def display_errors(self, stream):
         message = []
         message.append("```\n")
 
@@ -282,7 +283,7 @@ class Twitch:
         else:
             message.append("Status: N/A\n")
 
-        if stream["ALREADY_ONLINE"]:
+        if stream["ALREADY_ONLINE"] or stream["ALREADY_ONLINE"] == False:
             message.append("ALREADY_ONLINE: " + str(stream["ALREADY_ONLINE"]) + "\n")
         else:
             message.append("ALREADY_ONLINE: N/A\n")
@@ -310,10 +311,7 @@ class Twitch:
         message.append("```\n")
         output = ''.join(message)
 
-        cyphon = discord.utils.get(self.bot.get_server(self.server_id).members, id="186835826699665409")
-        await self.bot.send_message(
-            cyphon,
-            output)
+        return output
 
     def check_channel(self, ctx):
         if ctx.message.channel.id == self.dev_channel:
@@ -348,8 +346,10 @@ class Twitch:
         header = {'Client-ID': self.settings.get("TWITCH_TOKEN", "")}
         try:
             async with session.get(url, headers=header) as r:
+                text = await r.text()
                 data = await r.json()
             await session.close()
+
             if r.status == 400:
                 return 400
             elif r.status == 404:
@@ -386,18 +386,41 @@ class Twitch:
                 else:
                     stream["STATUS"] = "N/A"
 
+                return True
+
             else:
                 return False
 
-                return True
+        except json.decoder.JSONDecodeError:
+            await session.close()
+            cyphon = discord.utils.get(self.bot.get_server(self.server_id).members, id="186835826699665409")
+
+            output = self.display_errors(stream)
+            trcbck = traceback.format_exc()
+            await self.bot.send_message(
+                cyphon,
+                trcbck + "\n" + output + "\n r.status: " + str(r.status))
+
+            with open("data/streams/debug.txt", "w") as file:
+                file.write(text)
+            file.close()
+            await self.bot.send_file(cyphon, "data/streams/debug.txt")
+
+            return error
+
         except Exception:
             cyphon = discord.utils.get(self.bot.get_server(self.server_id).members, id="186835826699665409")
 
+            output = self.display_errors(stream)
+            trcbck = traceback.format_exc()
             await self.bot.send_message(
                 cyphon,
-                traceback.format_exc())
-            await self.display_errors(stream)
-        return "error"
+                trcbck + "\n" + output + "\n r.status: " + str(r.status))
+
+            dataIO.save_json("data/streams/debug.json", data)
+            await self.bot.send_file(cyphon, "data/streams/debug.json")
+
+            return "error"
 
     async def stream_checker(self):
         CHECK_DELAY = self.check_delay
@@ -405,8 +428,8 @@ class Twitch:
 
         while self == self.bot.get_cog("Twitch"):
 
-            print("ALIVE %s!" % counter)
-            counter += 1
+            # print("ALIVE %s!" % counter)  # DEBUG
+            # counter += 1  # DEBUG
 
             old = deepcopy(self.twitch_streams)
 
@@ -450,10 +473,11 @@ class Twitch:
                     except Exception:
                         cyphon = discord.utils.get(self.bot.get_server(self.server_id).members, id="186835826699665409")
 
+                        output = self.display_errors(stream)
+                        trcbck = traceback.format_exc()
                         await self.bot.send_message(
                             cyphon,
-                            traceback.format_exc())
-                        await self.display_errors(stream)
+                            trcbck + "\n" + output)
 
                 elif online is True and stream["ALREADY_ONLINE"]:
                     try:
@@ -478,10 +502,11 @@ class Twitch:
                     except Exception:
                         cyphon = discord.utils.get(self.bot.get_server(self.server_id).members, id="186835826699665409")
 
+                        output = self.display_errors(stream)
+                        trcbck = traceback.format_exc()
                         await self.bot.send_message(
                             cyphon,
-                            traceback.format_exc())
-                        await self.display_errors(stream)
+                            trcbck + "\n" + output)
 
                 else:
                     if stream["ALREADY_ONLINE"] and not online:
@@ -506,10 +531,11 @@ class Twitch:
                             cyphon = discord.utils.get(self.bot.get_server(self.server_id).members,
                                                        id="186835826699665409")
 
+                            output = self.display_errors(stream)
+                            trcbck = traceback.format_exc()
                             await self.bot.send_message(
                                 cyphon,
-                                traceback.format_exc())
-                            await self.display_errors(stream)
+                                trcbck + "\n" + output)
 
                 await asyncio.sleep(0.5)
 
