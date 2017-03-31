@@ -354,6 +354,8 @@ class Twitch:
                 return 400
             elif r.status == 404:
                 return 404
+            elif r.status == 500:
+                return 500
 
             elif data["stream"]:
                 if data["stream"]["game"]:
