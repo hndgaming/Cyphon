@@ -13,6 +13,7 @@ import discord
 import datetime
 import traceback
 import json
+import time
 
 class Twitch:
     def __init__(self, bot):
@@ -30,7 +31,8 @@ class Twitch:
         # self.stream_channel = "295033190870024202"  # dev server
         # self.dev_channel = "288790607663726602"  # dev server
         # self.server_id = "215477025735966722"  # dev server
-        # self.check_delay = 5  # debug delay
+        # self.check_delay = 5    # debug delay
+        # self.twitch_online_debug = False
 
     @commands.group(name="twitch", pass_context=True)
     async def twitch(self, ctx):
@@ -427,6 +429,13 @@ class Twitch:
 
             return "error"
 
+    # @twitch.command(name="toggle", pass_context=True)
+    # async def toggle(self):
+        # self.twitch_online_debug = not self.twitch_online_debug
+
+    # async def twitch_online(self, stream):
+    #     return self.twitch_online_debug
+
     async def stream_checker(self):
         CHECK_DELAY = self.check_delay
         counter = 0
@@ -505,17 +514,10 @@ class Twitch:
                                 data.add_field(name="Viewers", value=stream["VIEWERS"])
                                 data.set_footer(text="Language: %s" % stream["LANGUAGE"])
                                 if (stream["IMAGE"]):
-                                    data.set_image(url=stream["IMAGE"])
+                                    data.set_image(url=stream["IMAGE"] + "/?_=" + str(int(time.time())))
                                 if (stream["LOGO"]):
                                     data.set_thumbnail(url=stream["LOGO"])
 
-                                # if stream["CHANNEL"] and stream["MESSAGE"]:
-                                #     channel = self.bot.get_channel(stream["CHANNEL"])
-                                #
-                                #     message = await self.bot.get_message(channel, stream["MESSAGE"])
-                                #
-                                #     await self.bot.edit_message(message, embed=data)
-                                # else:
                                 await self.bot.send_message(
                                     self.bot.get_channel(stream["CHANNEL"]),
                                     embed=data)
@@ -542,7 +544,7 @@ class Twitch:
                             data.add_field(name="Viewers", value=stream["VIEWERS"])
                             data.set_footer(text="Language: %s" % stream["LANGUAGE"])
                             if (stream["IMAGE"]):
-                                data.set_image(url=stream["IMAGE"])
+                                data.set_image(url=stream["IMAGE"] + "/?_=" + str(int(time.time())))
                             if (stream["LOGO"]):
                                 data.set_thumbnail(url=stream["LOGO"])
 
