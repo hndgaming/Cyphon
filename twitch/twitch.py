@@ -13,6 +13,7 @@ import discord
 import datetime
 import traceback
 import json
+import time
 
 class Twitch:
     def __init__(self, bot):
@@ -30,7 +31,8 @@ class Twitch:
         # self.stream_channel = "295033190870024202"  # dev server
         # self.dev_channel = "288790607663726602"  # dev server
         # self.server_id = "215477025735966722"  # dev server
-        # self.check_delay = 5  # debug delay
+        # self.check_delay = 60    # debug delay
+        # self.twitch_online_debug = False
 
     @commands.group(name="twitch", pass_context=True)
     async def twitch(self, ctx):
@@ -427,6 +429,13 @@ class Twitch:
 
             return "error"
 
+    # @twitch.command(name="toggle", pass_context=True)
+    # async def toggle(self):
+        # self.twitch_online_debug = not self.twitch_online_debug
+
+    # async def twitch_online(self, stream):
+    #     return self.twitch_online_debug
+
     async def stream_checker(self):
         CHECK_DELAY = self.check_delay
         counter = 0
@@ -451,14 +460,14 @@ class Twitch:
                                                                                                 "\n\n*To be added to this channel please ping a staff member.*")
                         await self.bot.send_message(
                             self.bot.get_channel(self.stream_channel),
-                            "``Last check at: " + str(datetime.datetime.strftime(datetime.datetime.now(), '%m/%d, %H:%M:%S')) + "``")
+                            "``Last check at: " + str(datetime.datetime.strftime(datetime.datetime.now(), '%m/%d, %H:%M:%S')) + " UTC+2``")
                         async for message in self.bot.logs_from(self.bot.get_channel(self.stream_channel), limit=1):
                             self.intro_message = message.id
                     else:
                         channel = self.bot.get_channel(self.stream_channel)
                         message = await self.bot.get_message(channel, self.intro_message)
                         await self.bot.edit_message(message,
-                                                    "``Last check at: " + str(datetime.datetime.strftime(datetime.datetime.now(), '%m/%d, %H:%M:%S')) + "``")
+                                                    "``Last check at: " + str(datetime.datetime.strftime(datetime.datetime.now(), '%m/%d, %H:%M:%S')) + " UTC+2``")
                 except discord.errors.NotFound:
                     self.intro_message = None
                     to_delete = []
@@ -496,7 +505,7 @@ class Twitch:
                             can_speak = channel_obj.permissions_for(channel_obj.server.me).send_messages
                             if channel_obj and can_speak:
                                 data = discord.Embed(title=stream["STATUS"],
-                                                     timestamp=datetime.datetime.now(),
+                                                     timestamp=datetime.datetime.utcnow(),
                                                      colour=discord.Colour(value=int("05b207", 16)),
                                                      url="http://www.twitch.tv/%s" % stream["NAME"])
                                 data.add_field(name="Streamer", value=stream["NAME"])
@@ -505,17 +514,10 @@ class Twitch:
                                 data.add_field(name="Viewers", value=stream["VIEWERS"])
                                 data.set_footer(text="Language: %s" % stream["LANGUAGE"])
                                 if (stream["IMAGE"]):
-                                    data.set_image(url=stream["IMAGE"])
+                                    data.set_image(url=stream["IMAGE"] + "/?_=" + str(int(time.time())))
                                 if (stream["LOGO"]):
                                     data.set_thumbnail(url=stream["LOGO"])
 
-                                # if stream["CHANNEL"] and stream["MESSAGE"]:
-                                #     channel = self.bot.get_channel(stream["CHANNEL"])
-                                #
-                                #     message = await self.bot.get_message(channel, stream["MESSAGE"])
-                                #
-                                #     await self.bot.edit_message(message, embed=data)
-                                # else:
                                 await self.bot.send_message(
                                     self.bot.get_channel(stream["CHANNEL"]),
                                     embed=data)
@@ -533,7 +535,7 @@ class Twitch:
                     elif online is True and stream["ALREADY_ONLINE"]:
                         try:
                             data = discord.Embed(title=stream["STATUS"],
-                                                 timestamp=datetime.datetime.now(),
+                                                 timestamp=datetime.datetime.utcnow(),
                                                  colour=discord.Colour(value=int("05b207",16)),
                                                  url="http://www.twitch.tv/%s" % stream["NAME"])
                             data.add_field(name="Streamer", value=stream["NAME"])
@@ -542,14 +544,14 @@ class Twitch:
                             data.add_field(name="Viewers", value=stream["VIEWERS"])
                             data.set_footer(text="Language: %s" % stream["LANGUAGE"])
                             if (stream["IMAGE"]):
-                                data.set_image(url=stream["IMAGE"])
+                                data.set_image(url=stream["IMAGE"] + "/?_=" + str(int(time.time())))
                             if (stream["LOGO"]):
                                 data.set_thumbnail(url=stream["LOGO"])
 
                             channel = self.bot.get_channel(stream["CHANNEL"])
                             message = await self.bot.get_message(channel, stream["MESSAGE"])
 
-                            await self.bot.edit_message(message, embed=data)
+                            await self.bot.edit_message(message, embed=data)                            
                         except discord.errors.NotFound:
                             messageError = True
                             stream["ALREADY_ONLINE"] = False
@@ -599,41 +601,6 @@ class Twitch:
                 dataIO.save_json("data/streams/twitch.json", self.twitch_streams)
 
             await asyncio.sleep(CHECK_DELAY)
-
-    # @commands.group(name="deb", pass_context=True)
-    # async def deb(self, ctx):
-    #     if ctx.invoked_subcommand is None:
-    #         await send_cmd_help(ctx)
-    #
-    # @deb.command(name="test", pass_context=True)
-    # async def test(self, ctx):
-    #     for stream in self.twitch_streams:
-    #         await self.bot.say("Stream: %s" % stream["NAME"])
-    #         await self.bot.say("Channel: %s" % self.bot.get_channel(stream["CHANNEL"]))
-    #         await self.bot.say("Status: " + str(stream["ALREADY_ONLINE"]))
-    #         await self.bot.say("Game: " + stream["GAME"])
-    #         await self.bot.say("Viewers: " + str(stream["VIEWERS"]))
-    #
-    # @deb.command(name="toggle", pass_context=True)
-    # async def toggle(self, ctx):
-    #     for stream in self.twitch_streams:
-    #         stream["ALREADY_ONLINE"] = False
-    #         if stream["MESSAGE"] and stream["CHANNEL"]:
-    #             try:
-    #                 channel = self.bot.get_channel(stream["CHANNEL"])
-    #                 print(str(stream["MESSAGE"]))
-    #                 message = await self.bot.get_message(channel, stream["MESSAGE"])
-    #                 print("d3")
-    #                 print(str(message))
-    #                 await self.bot.delete_message(message)
-    #                 print("d4")
-    #             except Exception as e:
-    #                 print("Exception: " + str(e))
-    #
-    #
-    # @deb.command(name="say", pass_context=True)
-    # async def say(self, ctx):
-    #     await self.bot.say("%s" % ctx.message.content)
 
     async def mass_purge(self, messages):
         while messages:
