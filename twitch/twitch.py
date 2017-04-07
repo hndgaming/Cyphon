@@ -460,14 +460,14 @@ class Twitch:
                                                                                                 "\n\n*To be added to this channel please ping a staff member.*")
                         await self.bot.send_message(
                             self.bot.get_channel(self.stream_channel),
-                            "``Last check at: " + str(datetime.datetime.strftime(datetime.datetime.now(), '%m/%d, %H:%M:%S')) + "``")
+                            "``Last check at: " + str(datetime.datetime.strftime(datetime.datetime.now(), '%m/%d, %H:%M:%S')) + " UTC+2``")
                         async for message in self.bot.logs_from(self.bot.get_channel(self.stream_channel), limit=1):
                             self.intro_message = message.id
                     else:
                         channel = self.bot.get_channel(self.stream_channel)
                         message = await self.bot.get_message(channel, self.intro_message)
                         await self.bot.edit_message(message,
-                                                    "``Last check at: " + str(datetime.datetime.strftime(datetime.datetime.now(), '%m/%d, %H:%M:%S')) + "``")
+                                                    "``Last check at: " + str(datetime.datetime.strftime(datetime.datetime.now(), '%m/%d, %H:%M:%S')) + " UTC+2``")
                 except discord.errors.NotFound:
                     self.intro_message = None
                     to_delete = []
