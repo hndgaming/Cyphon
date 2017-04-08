@@ -1,6 +1,0 @@
-Twitch
-------
-- Fix preview image not changing
-- Fix activity time <-> footer timestamp discrepancy
-- Add timezone to activity display
-- Catch if task ends prematurely
