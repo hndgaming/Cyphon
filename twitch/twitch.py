@@ -437,6 +437,7 @@ class Twitch:
             if self.check_permission(ctx) or ctx.message.author == cyphon:
                 loop = asyncio.get_event_loop()
                 loop.create_task(self.stream_checker())
+                await self.bot.say("Twitch task was successfully restarted!")
             else:
                 await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
 
