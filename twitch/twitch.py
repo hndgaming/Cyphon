@@ -361,6 +361,10 @@ class Twitch:
                 return 404
             elif r.status == 500:
                 return 500
+            elif r.status == 502:
+                return 502
+            elif r.status == 504:
+                return 504
 
             elif data["stream"]:
                 if data["stream"]["game"]:
@@ -437,6 +441,7 @@ class Twitch:
             if self.check_permission(ctx) or ctx.message.author == cyphon:
                 loop = asyncio.get_event_loop()
                 loop.create_task(self.stream_checker())
+                await self.bot.say("Twitch task was successfully restarted!")
             else:
                 await self.bot.send_message(ctx.message.author, "You don't have permission to execute that command.")
 
@@ -566,6 +571,8 @@ class Twitch:
                                 message = await self.bot.get_message(channel, stream["MESSAGE"])
 
                                 await self.bot.edit_message(message, embed=data)
+                            except discord.errors.HTTPException:
+                                messageError = True
                             except discord.errors.NotFound:
                                 messageError = True
                                 stream["ALREADY_ONLINE"] = False
