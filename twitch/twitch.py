@@ -419,6 +419,16 @@ class Twitch:
 
             return "error"
 
+        except asyncio.TimeoutError:
+            cyphon = discord.utils.get(self.bot.get_server(self.server_id).members, id="186835826699665409")
+
+            trcbck = traceback.format_exc()
+            await self.bot.send_message(
+                cyphon,
+                trcbck)
+
+            return "error"
+
         except Exception:
             cyphon = discord.utils.get(self.bot.get_server(self.server_id).members, id="186835826699665409")
 
