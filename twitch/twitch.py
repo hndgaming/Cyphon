@@ -363,8 +363,6 @@ class Twitch:
                 return 500
             elif r.status == 502:
                 return 502
-            elif r.status == 504:
-                return 504
 
             elif data["stream"]:
                 if data["stream"]["game"]:
