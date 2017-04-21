@@ -351,20 +351,22 @@ class Twitch:
         header = {'Client-ID': self.settings.get("TWITCH_TOKEN", "")}
         try:
             async with session.get(url, headers=header) as r:
+                if r.status == 400:
+                    return 400
+                elif r.status == 404:
+                    return 404
+                elif r.status == 500:
+                    return 500
+                elif r.status == 502:
+                    return 502
+                elif r.status == 504:
+                    return 504
+
                 text = await r.text()
                 data = await r.json()
             await session.close()
 
-            if r.status == 400:
-                return 400
-            elif r.status == 404:
-                return 404
-            elif r.status == 500:
-                return 500
-            elif r.status == 502:
-                return 502
-
-            elif data["stream"]:
+            if data["stream"]:
                 if data["stream"]["game"]:
                     stream["GAME"] = data["stream"]["game"]
                 else:
@@ -423,7 +425,7 @@ class Twitch:
             trcbck = traceback.format_exc()
             await self.bot.send_message(
                 cyphon,
-                trcbck)
+                "Error caught!\n" + trcbck)
 
             return "error"
 
